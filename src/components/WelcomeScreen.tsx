@@ -31,9 +31,9 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
               <div className="inline-block p-3 bg-blue-100 rounded-xl">
                 <Shield className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-lg">100% Anonymous</h3>
+              <h3 className="font-semibold text-lg">Privacy First</h3>
               <p className="text-sm text-muted-foreground">
-                No accounts, no tracking. Your data is completely private and secure.
+                Your financial data is encrypted and secure. We only use it for anonymous comparisons.
               </p>
             </CardContent>
           </Card>
