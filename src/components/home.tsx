@@ -6,7 +6,7 @@ import MetricsForm from "./MetricsForm";
 import Dashboard from "./Dashboard";
 import { UserMetrics } from "@/types/metrics";
 import { Button } from "./ui/button";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 
 type AppState = "welcome" | "form" | "dashboard";
@@ -31,7 +31,13 @@ function Home() {
   }, []);
 
   const handleStart = () => {
-    if (!user) {
+    // Check if Supabase is configured
+    const isSupabaseConfigured = 
+      import.meta.env.VITE_SUPABASE_URL && 
+      import.meta.env.VITE_SUPABASE_ANON_KEY &&
+      import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
+
+    if (isSupabaseConfigured && !user) {
       setShowAuthDialog(true);
     } else {
       setAppState("form");
@@ -48,6 +54,10 @@ function Home() {
     setAppState("form");
   };
 
+  const handleGoHome = () => {
+    setAppState("welcome");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -58,7 +68,20 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header with Auth */}
+      {/* Header with Home and Auth buttons */}
+      <div className="absolute top-4 left-4 z-10">
+        {appState !== "welcome" && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleGoHome}
+            className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 border-none shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <TrendingUp className="h-5 w-5 text-white" />
+          </Button>
+        )}
+      </div>
+      
       <div className="absolute top-4 right-4 z-10">
         {user ? (
           <Button
@@ -91,7 +114,7 @@ function Home() {
 
       {appState === "welcome" && <WelcomeScreen onStart={handleStart} />}
       
-      {appState === "form" && user && (
+      {appState === "form" && (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center py-12">
           <MetricsForm onSubmit={handleFormSubmit} />
         </div>

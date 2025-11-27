@@ -1,22 +1,48 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, TrendingUp, Users, Lock } from "lucide-react";
+import { Shield, TrendingUp, Users, Lock, BarChart3, Globe, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface WelcomeScreenProps {
   onStart: () => void;
 }
 
 export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const featuresRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (featuresRef.current) {
+      observer.observe(featuresRef.current);
+    }
+
+    return () => {
+      if (featuresRef.current) {
+        observer.unobserve(featuresRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-4xl w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-4 py-12 overflow-y-auto flex flex-col items-center">
+      <div className="max-w-4xl w-full space-y-8 mx-auto">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <div className="inline-block p-4 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-xl mb-4">
             <TrendingUp className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-            Know Your Worth
+          <h1 className="text-5xl md:text-6xl font-bold">
+            <span className="text-gray-900">Discover Global Insights </span>
+            <span className="bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">Anonymously</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Compare your salary, net worth, and expenses anonymously with global data. 
@@ -93,6 +119,121 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Key Features Section with Animation */}
+        <div 
+          ref={featuresRef}
+          className="mt-24 pt-16 border-t border-gray-200"
+        >
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              Why Choose Us
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Powerful insights, intuitive design, and complete transparency
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 - Interactive Analytics */}
+            <div 
+              className={`transform transition-all duration-700 ${
+                isVisible 
+                  ? 'translate-y-0 opacity-100' 
+                  : 'translate-y-10 opacity-0'
+              }`}
+              style={{ transitionDelay: '100ms' }}
+            >
+              <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white h-full hover:scale-105">
+                <CardContent className="pt-8 pb-6 text-center space-y-4">
+                  <div className="inline-block p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg">
+                    <BarChart3 className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-gray-900">Interactive Analytics</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Visualize your financial position with dynamic charts and graphs. 
+                    Filter by industry, location, and demographics for personalized insights.
+                  </p>
+                  <div className="pt-2">
+                    <div className="inline-flex items-center gap-2 text-sm font-medium text-purple-600">
+                      <Zap className="h-4 w-4" />
+                      Real-time Updates
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Feature 2 - Global Benchmarking */}
+            <div 
+              className={`transform transition-all duration-700 ${
+                isVisible 
+                  ? 'translate-y-0 opacity-100' 
+                  : 'translate-y-10 opacity-0'
+              }`}
+              style={{ transitionDelay: '300ms' }}
+            >
+              <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white h-full hover:scale-105">
+                <CardContent className="pt-8 pb-6 text-center space-y-4">
+                  <div className="inline-block p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl shadow-lg">
+                    <Globe className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-gray-900">Global Benchmarking</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Compare yourself against thousands of anonymous users worldwide. 
+                    Discover percentile rankings and see where you truly stand.
+                  </p>
+                  <div className="pt-2">
+                    <div className="inline-flex items-center gap-2 text-sm font-medium text-orange-600">
+                      <Users className="h-4 w-4" />
+                      1000+ Users
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Feature 3 - Instant Results */}
+            <div 
+              className={`transform transition-all duration-700 ${
+                isVisible 
+                  ? 'translate-y-0 opacity-100' 
+                  : 'translate-y-10 opacity-0'
+              }`}
+              style={{ transitionDelay: '500ms' }}
+            >
+              <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white h-full hover:scale-105">
+                <CardContent className="pt-8 pb-6 text-center space-y-4">
+                  <div className="inline-block p-4 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl shadow-lg">
+                    <Zap className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl text-gray-900">Instant Results</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Get immediate feedback on your financial metrics. 
+                    No waiting, no complex setup - just instant, actionable insights.
+                  </p>
+                  <div className="pt-2">
+                    <div className="inline-flex items-center gap-2 text-sm font-medium text-green-600">
+                      <TrendingUp className="h-4 w-4" />
+                      Under 2 Minutes
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="text-center mt-16">
+            <Button 
+              onClick={onStart}
+              size="lg"
+              className="h-14 px-10 text-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              Start Your Comparison Now
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
