@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserMetrics, PercentileData, GlobalStats } from "@/types/metrics";
-import { getGlobalStats, calculateUserPercentiles, getDistributionData, sectors, ageRanges, cities } from "@/lib/mockData";
+import { getGlobalStats, calculateUserPercentiles, getDistributionData } from "@/lib/mockData";
+import { CountryCode } from "@/lib/countryData";
 import StatCard from "./StatCard";
 import PercentileCard from "./PercentileCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -16,7 +17,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
-  const [filters, setFilters] = useState<{ sector?: string; ageRange?: string; city?: string }>({});
+  const [filters, setFilters] = useState<{ countryData: CountryCode }>({ countryData: 'spain' });
   
   const globalStats = getGlobalStats(filters);
   const percentiles = calculateUserPercentiles(userMetrics, filters);
@@ -34,10 +35,10 @@ export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
   const rentDistribution = getDistributionData('rent', filters);
 
   const clearFilters = () => {
-    setFilters({});
+    setFilters({ countryData: 'spain' });
   };
 
-  const hasActiveFilters = filters.sector || filters.ageRange || filters.city;
+  const hasActiveFilters = filters.countryData !== 'spain';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-8 px-4">
@@ -49,7 +50,7 @@ export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
               Your Financial Insights
             </h1>
             <p className="text-muted-foreground mt-2">
-              See how you compare to others in your field
+              Compare your salary with official government statistics
             </p>
           </div>
           <Button onClick={onReset} variant="outline" className="gap-2">
@@ -67,69 +68,49 @@ export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Filters */}
+        {/* Country Selection */}
         <Card className="border-none shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Filter className="h-5 w-5" />
-                  Filter Comparisons
+                  Select Country
                 </CardTitle>
-                <CardDescription>Refine your comparison by sector, age, or location</CardDescription>
+                <CardDescription>Compare your salary with official government statistics</CardDescription>
               </div>
               {hasActiveFilters && (
                 <Button onClick={clearFilters} variant="ghost" size="sm" className="gap-2">
-                  Clear Filters
+                  Reset to Spain
                 </Button>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="max-w-md">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Sector</label>
-                <Select value={filters.sector || "all"} onValueChange={(value) => setFilters({ ...filters, sector: value === "all" ? undefined : value })}>
+                <label className="text-sm font-medium">Country</label>
+                <Select value={filters.countryData} onValueChange={(value) => setFilters({ countryData: value as CountryCode })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All sectors" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All sectors</SelectItem>
-                    {sectors.map((sector) => (
-                      <SelectItem key={sector} value={sector}>{sector}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Age Range</label>
-                <Select value={filters.ageRange || "all"} onValueChange={(value) => setFilters({ ...filters, ageRange: value === "all" ? undefined : value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All ages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All ages</SelectItem>
-                    {ageRanges.map((range) => (
-                      <SelectItem key={range} value={range}>{range}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">City</label>
-                <Select value={filters.city || "all"} onValueChange={(value) => setFilters({ ...filters, city: value === "all" ? undefined : value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All cities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All cities</SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>{city}</SelectItem>
-                    ))}
+                    <SelectItem value="spain">Spain (Official INE 2023)</SelectItem>
+                    <SelectItem value="usa">United States (Official BLS 2023)</SelectItem>
+                    <SelectItem value="uk">United Kingdom (Official ONS 2023)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Official Data Info Banner */}
+        <Card className="border-green-200 bg-green-50/50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-green-900">
+              📊 <strong>Official Data:</strong> Comparing with official national salary data from {filters.countryData === 'spain' ? "Spain's INE (Instituto Nacional de Estadística)" : filters.countryData === 'usa' ? "US Bureau of Labor Statistics (BLS)" : "UK Office for National Statistics (ONS)"} - 2023. Salary percentiles are based on real government statistics.
+            </p>
           </CardContent>
         </Card>
 

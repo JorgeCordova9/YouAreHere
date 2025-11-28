@@ -1,4 +1,11 @@
 import { UserMetrics, GlobalStats, PercentileData } from "@/types/metrics";
+import { 
+  calculateCountryPercentile, 
+  getCountryStats, 
+  convertCurrency,
+  CountryCode,
+  availableCountries 
+} from "./countryData";
 
 // Mock database of user submissions
 const mockDatabase: UserMetrics[] = [
@@ -69,6 +76,8 @@ export const cities = [
   "Sydney",
   "Berlin",
   "Tokyo",
+  "Madrid",
+  "Barcelona",
   "Other"
 ];
 
@@ -90,38 +99,56 @@ export function calculatePercentile(value: number, dataset: number[]): number {
   return Math.round((index / sorted.length) * 100);
 }
 
-// Get global statistics
-export function getGlobalStats(filters?: { sector?: string; ageRange?: string; city?: string }): GlobalStats {
-  let filteredData = [...mockDatabase];
+// Get statistics from official country data
+export function getGlobalStats(filters: { countryData: CountryCode }): GlobalStats {
+  const countryStats = getCountryStats(filters.countryData);
   
-  if (filters?.sector) {
-    filteredData = filteredData.filter(d => d.sector === filters.sector);
+  if (!countryStats) {
+    // Fallback to Spain if country not found
+    const fallback = getCountryStats('spain')!;
+    return {
+      avgSalary: Math.round(fallback.mean),
+      medianSalary: Math.round(fallback.median),
+      avgNetWorth: Math.round(fallback.mean * 3), // Estimate: 3x annual salary
+      medianNetWorth: Math.round(fallback.median * 2.5), // Estimate: 2.5x annual salary
+      avgRent: Math.round(fallback.mean / 12 * 0.3), // Estimate: 30% of monthly salary
+      medianRent: Math.round(fallback.median / 12 * 0.3),
+    };
   }
-  if (filters?.ageRange) {
-    filteredData = filteredData.filter(d => d.ageRange === filters.ageRange);
-  }
-  if (filters?.city) {
-    filteredData = filteredData.filter(d => d.city === filters.city);
-  }
-  
-  const salaries = filteredData.map(d => d.salary);
-  const netWorths = filteredData.map(d => d.netWorth);
-  const rents = filteredData.map(d => d.rent);
   
   return {
-    avgSalary: Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length),
-    medianSalary: getMedian(salaries),
-    avgNetWorth: Math.round(netWorths.reduce((a, b) => a + b, 0) / netWorths.length),
-    medianNetWorth: getMedian(netWorths),
-    avgRent: Math.round(rents.reduce((a, b) => a + b, 0) / rents.length),
-    medianRent: getMedian(rents),
+    avgSalary: Math.round(countryStats.mean),
+    medianSalary: Math.round(countryStats.median),
+    avgNetWorth: Math.round(countryStats.mean * 3), // Estimate: 3x annual salary
+    medianNetWorth: Math.round(countryStats.median * 2.5), // Estimate: 2.5x annual salary
+    avgRent: Math.round(countryStats.mean / 12 * 0.3), // Estimate: 30% of monthly salary
+    medianRent: Math.round(countryStats.median / 12 * 0.3),
   };
 }
 
-// Calculate user percentiles
-export function calculateUserPercentiles(userMetrics: UserMetrics, filters?: { sector?: string; ageRange?: string; city?: string }): PercentileData {
-  let filteredData = [...mockDatabase];
+// Calculate user percentiles using official country data
+export function calculateUserPercentiles(userMetrics: UserMetrics, filters: { countryData: CountryCode }): PercentileData {
+  const countryStats = getCountryStats(filters.countryData);
   
+  if (!countryStats) {
+    // Fallback if country not found
+    return {
+      salary: 50,
+      netWorth: 50,
+      rent: 50,
+    };
+  }
+  
+  // Convert user's salary to the country's currency for comparison
+  const salaryInCountryCurrency = convertCurrency(
+    userMetrics.salary,
+    userMetrics.currency,
+    countryStats.currency
+  );
+  const salaryPercentile = Math.round(calculateCountryPercentile(salaryInCountryCurrency, filters.countryData));
+  
+  // For netWorth and rent, use mock data (can be enhanced later)
+  let filteredData = [...mockDatabase];
   if (filters?.sector) {
     filteredData = filteredData.filter(d => d.sector === filters.sector);
   }
@@ -132,12 +159,11 @@ export function calculateUserPercentiles(userMetrics: UserMetrics, filters?: { s
     filteredData = filteredData.filter(d => d.city === filters.city);
   }
   
-  const salaries = filteredData.map(d => d.salary);
   const netWorths = filteredData.map(d => d.netWorth);
   const rents = filteredData.map(d => d.rent);
   
   return {
-    salary: calculatePercentile(userMetrics.salary, salaries),
+    salary: salaryPercentile,
     netWorth: calculatePercentile(userMetrics.netWorth, netWorths),
     rent: calculatePercentile(userMetrics.rent, rents),
   };
@@ -149,35 +175,35 @@ function getMedian(arr: number[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-// Get distribution data for charts
-export function getDistributionData(metric: 'salary' | 'netWorth' | 'rent', filters?: { sector?: string; ageRange?: string; city?: string }) {
-  let filteredData = [...mockDatabase];
+// Get distribution data for charts based on country percentiles
+export function getDistributionData(metric: 'salary' | 'netWorth' | 'rent', filters: { countryData: CountryCode }) {
+  const countryStats = getCountryStats(filters.countryData);
   
-  if (filters?.sector) {
-    filteredData = filteredData.filter(d => d.sector === filters.sector);
-  }
-  if (filters?.ageRange) {
-    filteredData = filteredData.filter(d => d.ageRange === filters.ageRange);
-  }
-  if (filters?.city) {
-    filteredData = filteredData.filter(d => d.city === filters.city);
+  if (!countryStats) {
+    // Return empty buckets if no data
+    return [];
   }
   
-  const values = filteredData.map(d => d[metric]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min;
-  const bucketSize = range / 5;
+  // Create distribution based on country percentiles
+  if (metric === 'salary') {
+    return [
+      { range: `0-${Math.round(countryStats.p10 / 1000)}k`, count: 10 },
+      { range: `${Math.round(countryStats.p10 / 1000)}k-${Math.round(countryStats.p25 / 1000)}k`, count: 15 },
+      { range: `${Math.round(countryStats.p25 / 1000)}k-${Math.round(countryStats.median / 1000)}k`, count: 25 },
+      { range: `${Math.round(countryStats.median / 1000)}k-${Math.round(countryStats.p75 / 1000)}k`, count: 25 },
+      { range: `${Math.round(countryStats.p75 / 1000)}k-${Math.round(countryStats.p90 / 1000)}k`, count: 15 },
+      { range: `${Math.round(countryStats.p90 / 1000)}k+`, count: 10 },
+    ];
+  }
   
-  const buckets = Array.from({ length: 5 }, (_, i) => {
-    const start = min + (i * bucketSize);
-    const end = start + bucketSize;
-    const count = values.filter(v => v >= start && v < end).length;
-    return {
-      range: `${Math.round(start / 1000)}k-${Math.round(end / 1000)}k`,
-      count
-    };
-  });
-  
-  return buckets;
+  // For netWorth and rent, create estimated distributions
+  const multiplier = metric === 'netWorth' ? 3 : 0.025; // 3x salary for netWorth, ~2.5% for monthly rent
+  return [
+    { range: `0-${Math.round(countryStats.p10 * multiplier / 1000)}k`, count: 10 },
+    { range: `${Math.round(countryStats.p10 * multiplier / 1000)}k-${Math.round(countryStats.p25 * multiplier / 1000)}k`, count: 15 },
+    { range: `${Math.round(countryStats.p25 * multiplier / 1000)}k-${Math.round(countryStats.median * multiplier / 1000)}k`, count: 25 },
+    { range: `${Math.round(countryStats.median * multiplier / 1000)}k-${Math.round(countryStats.p75 * multiplier / 1000)}k`, count: 25 },
+    { range: `${Math.round(countryStats.p75 * multiplier / 1000)}k-${Math.round(countryStats.p90 * multiplier / 1000)}k`, count: 15 },
+    { range: `${Math.round(countryStats.p90 * multiplier / 1000)}k+`, count: 10 },
+  ];
 }

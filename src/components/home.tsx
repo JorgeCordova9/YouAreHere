@@ -8,6 +8,7 @@ import { UserMetrics } from "@/types/metrics";
 import { Button } from "./ui/button";
 import { LogOut, LogIn, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
+import { saveUserMetrics } from "@/lib/dataStorage";
 
 type AppState = "welcome" | "form" | "dashboard";
 
@@ -44,9 +45,21 @@ function Home() {
     }
   };
 
-  const handleFormSubmit = (metrics: UserMetrics) => {
+  const handleFormSubmit = async (metrics: UserMetrics) => {
     setUserMetrics(metrics);
+    
+    // Always save to localStorage for user's own reference
     localStorage.setItem("userMetrics", JSON.stringify(metrics));
+    
+    // Optionally save to database (only if Supabase is configured)
+    // This data is stored but NOT used in comparisons until manually enabled
+    try {
+      await saveUserMetrics(metrics);
+      console.log('User metrics saved to database for future analysis');
+    } catch (error) {
+      console.log('Database save skipped - using official data only');
+    }
+    
     setAppState("dashboard");
   };
 
