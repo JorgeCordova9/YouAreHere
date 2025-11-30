@@ -19,7 +19,7 @@ interface DashboardProps {
 export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
   const [filters, setFilters] = useState<{ countryData: CountryCode }>({ countryData: 'spain' });
   
-  const globalStats = getGlobalStats(filters);
+  const globalStats = getGlobalStats(filters, userMetrics.currency);
   const percentiles = calculateUserPercentiles(userMetrics, filters);
   
   const formatCurrency = (value: number) => {
@@ -142,19 +142,19 @@ export default function Dashboard({ userMetrics, onReset }: DashboardProps) {
             title="Salary Ranking"
             percentile={percentiles.salary}
             value={formatCurrency(userMetrics.salary)}
-            description={`You earn more than ${percentiles.salary}% of users in this comparison`}
+            description={`You earn more than ${percentiles.salary}% of people in ${filters.countryData === 'spain' ? 'Spain' : filters.countryData === 'usa' ? 'the United States' : 'the United Kingdom'}`}
           />
           <PercentileCard
             title="Net Worth Ranking"
             percentile={percentiles.netWorth}
             value={formatCurrency(userMetrics.netWorth)}
-            description={`Your net worth exceeds ${percentiles.netWorth}% of users in this comparison`}
+            description={`Your net worth exceeds ${percentiles.netWorth}% of people (estimated)`}
           />
           <PercentileCard
             title="Rent Ranking"
             percentile={percentiles.rent}
             value={formatCurrency(userMetrics.rent)}
-            description={`Your rent is higher than ${percentiles.rent}% of users in this comparison`}
+            description={`Your rent is higher than ${percentiles.rent}% of people (estimated)`}
           />
         </div>
 

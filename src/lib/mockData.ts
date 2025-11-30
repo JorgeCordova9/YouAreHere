@@ -99,30 +99,36 @@ export function calculatePercentile(value: number, dataset: number[]): number {
   return Math.round((index / sorted.length) * 100);
 }
 
-// Get statistics from official country data
-export function getGlobalStats(filters: { countryData: CountryCode }): GlobalStats {
+// Get statistics from official country data (converted to user's currency)
+export function getGlobalStats(filters: { countryData: CountryCode }, userCurrency: string = 'USD'): GlobalStats {
   const countryStats = getCountryStats(filters.countryData);
   
   if (!countryStats) {
     // Fallback to Spain if country not found
     const fallback = getCountryStats('spain')!;
+    const avgSalary = Math.round(convertCurrency(fallback.mean, fallback.currency, userCurrency));
+    const medianSalary = Math.round(convertCurrency(fallback.median, fallback.currency, userCurrency));
     return {
-      avgSalary: Math.round(fallback.mean),
-      medianSalary: Math.round(fallback.median),
-      avgNetWorth: Math.round(fallback.mean * 3), // Estimate: 3x annual salary
-      medianNetWorth: Math.round(fallback.median * 2.5), // Estimate: 2.5x annual salary
-      avgRent: Math.round(fallback.mean / 12 * 0.3), // Estimate: 30% of monthly salary
-      medianRent: Math.round(fallback.median / 12 * 0.3),
+      avgSalary,
+      medianSalary,
+      avgNetWorth: Math.round(avgSalary * 3), // Estimate: 3x annual salary
+      medianNetWorth: Math.round(medianSalary * 2.5), // Estimate: 2.5x annual salary
+      avgRent: Math.round(avgSalary / 12 * 0.3), // Estimate: 30% of monthly salary
+      medianRent: Math.round(medianSalary / 12 * 0.3),
     };
   }
   
+  // Convert country stats to user's currency for display
+  const avgSalary = Math.round(convertCurrency(countryStats.mean, countryStats.currency, userCurrency));
+  const medianSalary = Math.round(convertCurrency(countryStats.median, countryStats.currency, userCurrency));
+  
   return {
-    avgSalary: Math.round(countryStats.mean),
-    medianSalary: Math.round(countryStats.median),
-    avgNetWorth: Math.round(countryStats.mean * 3), // Estimate: 3x annual salary
-    medianNetWorth: Math.round(countryStats.median * 2.5), // Estimate: 2.5x annual salary
-    avgRent: Math.round(countryStats.mean / 12 * 0.3), // Estimate: 30% of monthly salary
-    medianRent: Math.round(countryStats.median / 12 * 0.3),
+    avgSalary,
+    medianSalary,
+    avgNetWorth: Math.round(avgSalary * 3), // Estimate: 3x annual salary
+    medianNetWorth: Math.round(medianSalary * 2.5), // Estimate: 2.5x annual salary
+    avgRent: Math.round(avgSalary / 12 * 0.3), // Estimate: 30% of monthly salary
+    medianRent: Math.round(medianSalary / 12 * 0.3),
   };
 }
 
@@ -147,25 +153,35 @@ export function calculateUserPercentiles(userMetrics: UserMetrics, filters: { co
   );
   const salaryPercentile = Math.round(calculateCountryPercentile(salaryInCountryCurrency, filters.countryData));
   
-  // For netWorth and rent, use mock data (can be enhanced later)
-  let filteredData = [...mockDatabase];
-  if (filters?.sector) {
-    filteredData = filteredData.filter(d => d.sector === filters.sector);
-  }
-  if (filters?.ageRange) {
-    filteredData = filteredData.filter(d => d.ageRange === filters.ageRange);
-  }
-  if (filters?.city) {
-    filteredData = filteredData.filter(d => d.city === filters.city);
-  }
+  // For netWorth and rent, estimate based on salary distribution
+  // Common assumption: netWorth is roughly 3-5x annual salary, rent is about 25-30% of monthly salary
   
-  const netWorths = filteredData.map(d => d.netWorth);
-  const rents = filteredData.map(d => d.rent);
+  // Convert user's net worth to country currency
+  const netWorthInCountryCurrency = convertCurrency(
+    userMetrics.netWorth,
+    userMetrics.currency,
+    countryStats.currency
+  );
+  
+  // Estimate net worth percentile by comparing to 3x the salary distribution
+  const equivalentSalaryForNetWorth = netWorthInCountryCurrency / 3;
+  const netWorthPercentile = Math.round(calculateCountryPercentile(equivalentSalaryForNetWorth, filters.countryData));
+  
+  // Convert user's rent to country currency
+  const rentInCountryCurrency = convertCurrency(
+    userMetrics.rent,
+    userMetrics.currency,
+    countryStats.currency
+  );
+  
+  // Estimate rent percentile by comparing to 30% of monthly salary (annual rent = 3.6x monthly rent)
+  const equivalentSalaryForRent = (rentInCountryCurrency * 12) / 0.3;
+  const rentPercentile = Math.round(calculateCountryPercentile(equivalentSalaryForRent, filters.countryData));
   
   return {
     salary: salaryPercentile,
-    netWorth: calculatePercentile(userMetrics.netWorth, netWorths),
-    rent: calculatePercentile(userMetrics.rent, rents),
+    netWorth: netWorthPercentile,
+    rent: rentPercentile,
   };
 }
 
